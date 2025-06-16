@@ -1,0 +1,8 @@
+{
+  "name": "dastefano-api",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "mercadopago": "^1.19.6"
+  }
+}
