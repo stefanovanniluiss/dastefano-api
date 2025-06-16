@@ -11,6 +11,8 @@ module.exports = async (req, res) => {
     return res.status(405).end('Method Not Allowed');
   }
 
+  console.log('RAW BODY:', req.body);
+
   // 2. Parse body (Vercel no lo hace por ti)
   let payload;
   try {
