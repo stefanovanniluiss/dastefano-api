@@ -1,8 +1,7 @@
 {
   "name": "dastefano-api",
   "version": "1.0.0",
-  "type": "module",
   "dependencies": {
-    "mercadopago": "latest"
+    "mercadopago": "^0.13.14"
   }
 }
