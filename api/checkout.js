@@ -1,35 +1,44 @@
-// api/checkout.js — Mercado Pago SDK v1.x (latest)
+// api/checkout.js  —  versión con CORS estricto y respuesta 204 al pre-flight
 
 const { MercadoPagoConfig, Preference } = require('mercadopago');
 
-/* 1 ▸ Configura el SDK con tu Access Token LIVE (o TEST) */
+/* SDK */
 const mp = new MercadoPagoConfig({
   accessToken: process.env.MP_ACCESS_TOKEN
 });
 
-/* 2 ▸ Handler de la Serverless Function */
+/* Utilidad para poner cabeceras CORS */
+function setCORS(res) {
+  res.setHeader('Access-Control-Allow-Origin', 'https://dastefano.cl'); // usa '*' mientras pruebas
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+}
+
 module.exports = async (req, res) => {
-  // Solo POST
+  /* --- PRE-FLIGHT ----------------------------------------------------- */
+  if (req.method === 'OPTIONS') {
+    setCORS(res);
+    return res.status(204).end();          // 204 = sin contenido pero OK
+  }
+
+  /* --- SÓLO POST ------------------------------------------------------ */
   if (req.method !== 'POST') {
     return res.status(405).end('Method Not Allowed');
   }
 
-  /* 3 ▸ Inspecciona lo que llega */
+  setCORS(res);                            // CORS para la respuesta POST
   console.log('RAW BODY:', req.body);
 
   const { items } = req.body || {};
-  if (!Array.isArray(items) || items.length === 0) {
+  if (!Array.isArray(items) || !items.length) {
     return res.status(400).json({ error: 'items_missing' });
   }
 
-  // Limpia currency_id interno si el front lo envió
-  const cleanItems = items.map(({ currency_id, ...rest }) => rest);
-
-  /* 4 ▸ Crear preferencia (SDK v1.x requiere wrapper "body") */
+  const cleanItems = items.map(({ currency_id, ...r }) => r);
   const preference = new Preference(mp);
 
   try {
-    const resp = await preference.create({
+    const { init_point } = await preference.create({
       body: {
         items: cleanItems,
         currency_id: 'CLP',
@@ -43,8 +52,7 @@ module.exports = async (req, res) => {
       }
     });
 
-    /* 5 ▸ Devolver link de pago */
-    return res.json({ init_point: resp.init_point });
+    return res.json({ init_point });
   } catch (err) {
     console.error('MP Error:', err);
     return res.status(500).json({ error: 'checkout_fail' });
