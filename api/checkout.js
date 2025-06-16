@@ -1,33 +1,31 @@
-// api/checkout.js  – SDK v1.x (latest)
+// api/checkout.js – MercadoPago SDK v1.x
+
 const { MercadoPagoConfig, Preference } = require('mercadopago');
 
-// 1. SDK config
+// 1- Configura el SDK con tu Access Token LIVE
 const mp = new MercadoPagoConfig({
-  accessToken: process.env.MP_ACCESS_TOKEN            // ← LIVE token
+  accessToken: process.env.MP_ACCESS_TOKEN
 });
 
 module.exports = async (req, res) => {
+  // Sólo permitimos POST
   if (req.method !== 'POST') {
     return res.status(405).end('Method Not Allowed');
   }
 
-  console.log('RAW BODY:', req.body);
+  // 2- El body ya viene parseado como objeto en Vercel
+  const payload = req.body;
+  console.log('RAW BODY:', payload);
 
-  // 2. Parse body (Vercel no lo hace por ti)
-  let payload;
-  try {
-    payload = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-  } catch {
-    return res.status(400).json({ error: 'bad_json' });
-  }
-
+  // Validación básica
   const { items } = payload || {};
-  if (!Array.isArray(items) || !items.length) {
+  if (!Array.isArray(items) || items.length === 0) {
     return res.status(400).json({ error: 'items_missing' });
   }
 
-  // 3. Crear preferencia
+  // 3- Creamos la preferencia
   const preference = new Preference(mp);
+
   try {
     const resp = await preference.create({
       items,
@@ -40,10 +38,10 @@ module.exports = async (req, res) => {
       notification_url: 'https://api.dastefano.cl/api/webhook'
     });
 
-    // 4. Responder con el link de pago
-    res.json({ init_point: resp.init_point });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: 'checkout_fail' });
+    // 4- Respondemos con el link de pago
+    return res.json({ init_point: resp.init_point });
+  } catch (err) {
+    console.error('MP Error:', err);
+    return res.status(500).json({ error: 'checkout_fail' });
   }
 };
