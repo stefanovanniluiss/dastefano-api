@@ -3,6 +3,6 @@
   "version": "1.0.0",
   "type": "module",
   "dependencies": {
-    "mercadopago": "^1.9.6"
+    "mercadopago": "latest"
   }
 }
