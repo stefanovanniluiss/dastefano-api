@@ -1,32 +1,26 @@
-// api/checkout.js  —  versión con CORS estricto y respuesta 204 al pre-flight
-
 const { MercadoPagoConfig, Preference } = require('mercadopago');
 
-/* SDK */
 const mp = new MercadoPagoConfig({
   accessToken: process.env.MP_ACCESS_TOKEN
 });
 
-/* Utilidad para poner cabeceras CORS */
 function setCORS(res) {
-  res.setHeader('Access-Control-Allow-Origin', 'https://dastefano.cl'); // usa '*' mientras pruebas
+  res.setHeader('Access-Control-Allow-Origin', 'https://dastefano.cl');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 }
 
 module.exports = async (req, res) => {
-  /* --- PRE-FLIGHT ----------------------------------------------------- */
   if (req.method === 'OPTIONS') {
     setCORS(res);
-    return res.status(204).end();          // 204 = sin contenido pero OK
+    return res.status(204).end();
   }
 
-  /* --- SÓLO POST ------------------------------------------------------ */
   if (req.method !== 'POST') {
     return res.status(405).end('Method Not Allowed');
   }
 
-  setCORS(res);                            // CORS para la respuesta POST
+  setCORS(res);
   console.log('RAW BODY:', req.body);
 
   const { items } = req.body || {};
@@ -36,6 +30,9 @@ module.exports = async (req, res) => {
 
   const cleanItems = items.map(({ currency_id, ...r }) => r);
   const preference = new Preference(mp);
+
+  // ---- Genera el external_reference ----
+  const external_reference = `pedido_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
 
   try {
     const { init_point } = await preference.create({
@@ -48,7 +45,8 @@ module.exports = async (req, res) => {
           pending:  'https://dastefano.cl/pendiente'
         },
         auto_return: 'approved',
-        notification_url: 'https://api.dastefano.cl/api/webhook'
+        notification_url: 'https://api.dastefano.cl/api/webhook',
+        external_reference      // <-- Esta línea nueva
       }
     });
 
