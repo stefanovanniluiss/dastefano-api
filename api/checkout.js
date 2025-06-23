@@ -31,6 +31,7 @@ module.exports = async (req, res) => {
   const cleanItems = items.map(({ currency_id, ...r }) => r);
   const preference = new Preference(mp);
 
+  
   // ---- Genera el external_reference ----
   const external_reference = `pedido_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
 
@@ -39,6 +40,9 @@ module.exports = async (req, res) => {
       body: {
         items: cleanItems,
         currency_id: 'CLP',
+        payer; {
+          email: req.body.email || undefined
+        },
         back_urls: {
           success: 'https://dastefano.cl/gracias',
           failure: 'https://dastefano.cl/error',
@@ -50,7 +54,7 @@ module.exports = async (req, res) => {
       }
     });
 
-    return res.json({ init_point });
+    return res.json({ init_point, external_reference });
   } catch (err) {
     console.error('MP Error:', err);
     return res.status(500).json({ error: 'checkout_fail' });
