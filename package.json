@@ -2,6 +2,8 @@
   "name": "dastefano-api",
   "version": "1.0.0",
   "dependencies": {
-    "mercadopago": "^0.13.14"
+    "mercadopago": "latest",
+    "axios":       "^1.4.0",
+    "mysql2":      "^3.3.0"
   }
 }
