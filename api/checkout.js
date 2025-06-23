@@ -40,7 +40,7 @@ module.exports = async (req, res) => {
       body: {
         items: cleanItems,
         currency_id: 'CLP',
-        payer; {
+        payer: {
           email: req.body.email || undefined
         },
         back_urls: {
