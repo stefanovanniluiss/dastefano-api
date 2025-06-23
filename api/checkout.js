@@ -49,7 +49,7 @@ module.exports = async (req, res) => {
           pending:  'https://dastefano.cl/pendiente'
         },
         auto_return: 'approved',
-        notification_url: 'https://api.dastefano.cl/api/webhook',
+        notification_url: 'https://dastefano.cl/api/webhook.php',
         external_reference      // <-- Esta línea nueva
       }
     });
