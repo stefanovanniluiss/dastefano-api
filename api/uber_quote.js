@@ -4,7 +4,7 @@
  */
 // /api/uber_quote.js  — Vercel serverless function (Node 18)
 
-const ALLOWED_ORIGIN = 'https://dastefano.cl';  // o "*" mientras pruebas
+const ALLOWED_ORIGIN = '*';  // o "*" mientras pruebas
 
 const fetch = (...args) =>
   import('node-fetch').then(({ default: f }) => f(...args));
