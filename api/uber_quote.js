@@ -9,6 +9,10 @@
  *    UBER_PICKUP_NAME, UBER_PICKUP_ADDR, UBER_PICKUP_LAT, UBER_PICKUP_LNG, UBER_PICKUP_PHONE
  */
 
+console.log('ID', process.env.UBER_CLIENT_ID.slice(0,6),
+            'secret', process.env.UBER_CLIENT_SECRET.length,
+            'cust', process.env.UBER_CUSTOMER_ID.slice(0,6));
+
 const ALLOWED_ORIGIN = 'https://dastefano.cl';   // pon "*" sólo durante pruebas locales
 const fetch = (...a) => import('node-fetch').then(({ default: f }) => f(...a));
 
@@ -103,8 +107,10 @@ module.exports = async (req, res) => {
 
     if (!quoteRes.ok) {
       const txt = await quoteRes.text();
-      console.error('Uber quote error:', txt);
-      return res.status(502).json({ error: 'quote_fail' });
+      console.error('Uber quote error:', quoteRes.status, txt);
+      return res.
+        .status(quoteRes.status)          // pasa el mismo status
+        .json({ error:'quote_fail', detail: txt });
     }
 
     /* 3 · Respuesta final */
