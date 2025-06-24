@@ -1,71 +1,73 @@
-// api/uber_quote.js
+/**
+ *  POST  { dropoff: { address, lat, lng, name, phone } }
+ *  ↪︎  { eta_minutes, fee_cents, quote_id }
+ */
+const fetch = (...args) => import('node-fetch').then(({default:f})=>f(...args));
 
-import axios from 'axios';
+let token, tokenExpires = 0;                               // cache en memoria
 
-const CLIENT_ID     = process.env.UBER_CLIENT_ID;
-const CLIENT_SECRET = process.env.UBER_CLIENT_SECRET;
-const CUSTOMER_ID   = process.env.UBER_CUSTOMER_ID;
+async function getToken () {
+  if (token && Date.now() < tokenExpires) return token;
 
-// 1) Función para obtener token OAuth2 (Client Credentials)
-async function getUberToken() {
-  const params = new URLSearchParams({
-    grant_type: 'client_credentials',
-    scope:      'eats.deliveries'
+  const res = await fetch('https://auth.uber.com/oauth/v2/token', {
+    method: 'POST',
+    headers: { 'Content-Type':'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id    : process.env.UBER_CLIENT_ID,
+      client_secret: process.env.UBER_CLIENT_SECRET,
+      grant_type   : 'client_credentials',
+      scope        : 'eats.deliveries'
+    })
   });
-  const basic = Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString('base64');
-
-  const resp = await axios.post(
-    'https://login.uber.com/oauth/v2/token',
-    params.toString(),
-    { headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Authorization': `Basic ${basic}`
-    }}
-  );
-  return resp.data.access_token;
+  const d = await res.json();
+  token        = d.access_token;
+  tokenExpires = Date.now() + (d.expires_in - 60) * 1000; // 1 min de margen
+  return token;
 }
 
-// 2) Handler principal
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).end('Method Not Allowed');
-  }
-  // Esperamos pickup y dropoff en el body
-  const { pickup, dropoff } = req.body;
-  if (!pickup || !dropoff) {
-    return res.status(400).json({ error: 'pickup_and_dropoff_required' });
-  }
+module.exports = async (req, res) => {
+  if (req.method === 'OPTIONS') return res.status(204).end();
+  if (req.method !== 'POST')    return res.status(405).end('Only POST');
 
-  try {
-    // 3) Obtén token y crea el quote
-    const token = await getUberToken();
-    const quoteResp = await axios.post(
-      `https://api.uber.com/v1/customers/${CUSTOMER_ID}/delivery_quotes`,
-      {
-        pickup_address:  JSON.stringify(pickup),
-        dropoff_address: JSON.stringify(dropoff),
-        pickup_latitude:  pickup.latitude,
-        pickup_longitude: pickup.longitude,
-        dropoff_latitude:  dropoff.latitude,
-        dropoff_longitude: dropoff.longitude,
-        // Opcionales: tiempos si los quieres programar
+  const { dropoff } = req.body || {};
+  if (!dropoff?.address || !dropoff?.lat || !dropoff?.lng)
+      return res.status(400).json({ error:'bad_dropoff' });
+
+  const access = await getToken();
+
+  const quoteRes = await fetch(
+    `https://api.uber.com/v2/customers/${process.env.UBER_CUSTOMER_ID}/delivery_quotes`,
+    {
+      method : 'POST',
+      headers: {
+        'Content-Type' : 'application/json',
+        'Authorization': `Bearer ${access}`
       },
-      { headers: {
-        'Content-Type':  'application/json',
-        'Authorization': `Bearer ${token}`
-      }}
-    );
-
-    const q = quoteResp.data;
-    // La respuesta tiene fee (costo en CLP en tu caso tras conversión), dropoff_eta (timestamp ISO)
-    // y duration (minutos aproximados) :contentReference[oaicite:0]{index=0}
-    return res.status(200).json({
-      fee:        q.fee,
-      eta:        q.duration,        // minutos aproximados
-      dropoffEta: q.dropoff_eta     // fecha/hora exacta en ISO
+      body: JSON.stringify({
+        pickup: {
+          nickname : process.env.UBER_PICKUP_NAME,
+          address  : process.env.UBER_PICKUP_ADDR,
+          location : { lat:+process.env.UBER_PICKUP_LAT, lng:+process.env.UBER_PICKUP_LNG },
+          contact  : { first_name:'Da Stefano', last_name:'', phone_number:process.env.UBER_PICKUP_PHONE }
+        },
+        dropoff: {
+          address  : dropoff.address,
+          location : { lat:+dropoff.lat, lng:+dropoff.lng },
+          contact  : { first_name: dropoff.name||'Cliente', last_name:'', phone_number: dropoff.phone||'' }
+        }
+      })
     });
-  } catch (err) {
-    console.error('Uber Quote error:', err.response?.data || err.message);
-    return res.status(500).json({ error: 'uber_quote_failed' });
+
+  if (!quoteRes.ok) {
+    const err = await quoteRes.text();
+    console.error('Uber Quote ERR', err);
+    return res.status(500).json({ error:'quote_fail' });
   }
-}
+
+  const q = await quoteRes.json();                         // <- fee & duration
+  res.json({
+    eta_minutes: q.duration,               // minutos totales aprox.
+    fee_cents  : q.fee,                    // CLP en centavos
+    quote_id   : q.id
+  });
+};
