@@ -4,6 +4,19 @@
  */
 const fetch = (...args) => import('node-fetch').then(({default:f})=>f(...args));
 
+
+function setCORS (res) {
+  res.setHeader('Access-Control-Allow-Origin', 'https://dastefano.cl');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+}
+
+module.exports = async (req, res) => {
+  if (req.method === 'OPTIONS') { setCORS(res); return res.status(204).end(); }
+  setCORS(res);
+  …
+
+
 let token, tokenExpires = 0;                               // cache en memoria
 
 async function getToken () {
