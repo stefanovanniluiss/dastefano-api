@@ -111,7 +111,7 @@ module.exports = async (req, res) => {
     console.log('[quote] payload →', JSON.stringify(payload));
 
     /* 3 · /delivery_quotes */
-    const url = `https://api.uber.com/v2/customers/${process.env.UBER_CUSTOMER_ID}/delivery_quotes`;
+    const url = `https://api.uber.com/v1/customers/${process.env.UBER_CUSTOMER_ID}/delivery_quotes`;
     const quoteRes = await fetch(url, {
       method : 'POST',
       headers: {
