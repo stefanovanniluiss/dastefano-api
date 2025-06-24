@@ -85,28 +85,23 @@ module.exports = async (req, res) => {
     const access = await getToken();
 
     /* 2 · arma payload /delivery_quotes */
-    const payload = {
-      pickup: {
-        nickname: process.env.UBER_PICKUP_NAME,
-        address : process.env.UBER_PICKUP_ADDR,
-        location: {
-          lat: +process.env.UBER_PICKUP_LAT,
-          lng: +process.env.UBER_PICKUP_LNG
-        },
-        contact: {
-          first_name  : 'Da Stefano',
-          phone_number: process.env.UBER_PICKUP_PHONE
-        }
-      },
-      dropoff: {
-        address : dropoff.address,
-        location: { lat: +dropoff.lat, lng: +dropoff.lng },
-        contact : {
-          first_name  : dropoff.name  || 'Cliente',
-          phone_number: dropoff.phone || ''
-        }
-      }
-    };
+    // const payload = { pickup:{…}, dropoff:{…} };
+  const payload = {
+  /* ─── pickup ─── */
+    pickup_address      : process.env.UBER_PICKUP_ADDR,
+    pickup_latitude     : +process.env.UBER_PICKUP_LAT,
+    pickup_longitude    : +process.env.UBER_PICKUP_LNG,
+    pickup_phone_number : process.env.UBER_PICKUP_PHONE,
+    pickup_business_name: process.env.UBER_PICKUP_NAME,
+
+  /* ─── dropoff ─── */
+    dropoff_address      : dropoff.address,
+    dropoff_latitude     : +dropoff.lat,
+    dropoff_longitude    : +dropoff.lng,
+    dropoff_phone_number : dropoff.phone || '',
+    dropoff_business_name: dropoff.name  || 'Cliente'
+  };
+
 
     console.log('[quote] payload →', JSON.stringify(payload));
 
