@@ -2,40 +2,49 @@
  *  POST  { dropoff: { address, lat, lng, name, phone } }
  *  ↪︎  { eta_minutes, fee_cents, quote_id }
  */
-const fetch = (...args) => import('node-fetch').then(({default:f})=>f(...args));
+// /api/uber_quote.js  — Vercel serverless function (Node 18)
 
+const ALLOWED_ORIGIN = 'https://dastefano.cl';  // o "*" mientras pruebas
 
 const fetch = (...args) =>
   import('node-fetch').then(({ default: f }) => f(...args));
 
-/* ─────────────  CORS helper  ───────────── */
-function setCORS (res) {
-  res.setHeader('Access-Control-Allow-Origin', 'https://dastefano.cl');
+function setCORS(res) {
+  res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGIN);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader(
     'Access-Control-Allow-Headers',
     'Content-Type, Authorization, X-Requested-With'
   );
-  res.setHeader('Access-Control-Max-Age', '86400'); // cache 24 h
+  res.setHeader('Access-Control-Max-Age', '86400'); // 24 h
 }
 
 module.exports = async (req, res) => {
-  /* 0 · Siempre inyecta los encabezados CORS */
-  setCORS(res);
+  setCORS(res);                            // ① SIEMPRE antes de salir
 
-  /* 1 · Pre-flight */
-  if (req.method === 'OPTIONS') {
-    // devolver 200 (o 204) *después* de setCORS
-    return res.status(200).end();
+  if (req.method === 'OPTIONS') {          // ② pre-flight
+    return res.status(200).end();          //   (headers ya puestos)
   }
 
   if (req.method !== 'POST') {
     return res.status(405).end('Method Not Allowed');
   }
 
-  /* 2 · A partir de aquí tu lógica normal … */
-  //  ... getToken(), llamar a /delivery_quotes, etc.
+  /* ----------------- lóg. normal ----------------- */
+  try {
+    const { dropoff } = req.body || {};
+    if (!dropoff?.address) {
+      return res.status(400).json({ error: 'bad_dropoff' });
+    }
+
+    // … getToken(), llamar a /delivery_quotes, etc. …
+
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'quote_fail' });
+  }
 };
+
 
 
 
