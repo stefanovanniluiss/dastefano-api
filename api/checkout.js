@@ -65,7 +65,7 @@ module.exports = async (req, res) => {
           pending: 'https://dastefano.cl/pendiente'
         },
         auto_return: 'approved',
-        notification_url: 'https://dastefano.cl/api/webhook.php',
+        notification_url: 'https://dastefano.cl/vs_api/webhook.php',
         external_reference,
         metadata                          //  ←—— nuevo
       }
